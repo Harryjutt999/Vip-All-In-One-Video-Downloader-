@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VIP All-in-One Video Downloader</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#050505; --accent:#ff2d75; --accent-2:#ff0050; --gold:#ffd700;
+      --muted:#bfa3b8;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:'Poppins',system-ui,Arial;background:linear-gradient(160deg,#000 0%,#0d0d0d 100%);color:#ffe0f0;overflow:auto}
+    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:36px}
+    .card{width:460px;max-width:94%;background:linear-gradient(180deg,rgba(15,8,12,0.6),rgba(8,4,6,0.75));border-radius:16px;padding:22px;box-shadow:0 18px 50px rgba(255,45,117,0.08);border:1px solid rgba(255,45,117,0.06)}
+    .top{display:flex;align-items:center;gap:12px}
+    .avatar{width:64px;height:64px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,45,117,0.2)}
+    .avatar img{width:100%;height:100%;object-fit:cover}
+    h1{margin:0;font-size:18px;color:var(--accent);text-shadow:0 0 8px rgba(255,45,117,0.12)}
+    .subtitle{color:var(--muted);font-size:12px;margin-top:4px}
+    .tabs{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap}
+    .tab{flex:1;padding:8px 10px;border-radius:8px;background:rgba(255,45,117,0.06);color:var(--muted);text-align:center;cursor:pointer;border:1px solid rgba(255,45,117,0.03);font-weight:600}
+    .tab.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff}
+    label{display:block;margin-top:10px;font-size:13px;color:var(--muted)}
+    .input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,45,117,0.06);background:rgba(0,0,0,0.45);color:#ffd6ea;font-size:14px;outline:none}
+    .row{display:flex;gap:8px;margin-top:12px}
+    .btn{flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;font-weight:700;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,45,117,0.08);color:var(--muted)}
+    .video-box{margin-top:14px;display:none}
+    video{width:100%;border-radius:12px;display:block;margin-bottom:10px}
+    .links{display:flex;flex-direction:column;gap:8px}
+    .link-btn{display:block;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);color:#ffe; text-decoration:none;border:1px solid rgba(255,45,117,0.06);font-weight:600}
+    .small{font-size:12px;color:var(--muted);margin-top:10px;text-align:center}
+    .footer{margin-top:12px;text-align:center;color:var(--gold);font-weight:600}
+    /* matrix canvas overlay (kept simple) */
+    .matrix {position:fixed;inset:0;z-index:-1;pointer-events:none}
+    canvas{width:100%;height:100%}
+  </style>
+</head>
+<body>
+  <div class="matrix"><canvas id="matrixCanvas"></canvas></div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="top">
+        <div class="avatar"><img src="https://i.postimg.cc/Dzrr0fbd/stripped-Snapchat-931726747.jpg" alt="profile"></div>
+        <div style="flex:1">
+          <h1>VIP All-in-One Downloader</h1>
+          <div class="subtitle">TikTok • Facebook • Instagram • Pinterest • YouTube</div>
+        </div>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <div class="tab active" data-site="tiktok">TikTok</div>
+        <div class="tab" data-site="facebook">Facebook</div>
+        <div class="tab" data-site="instagram">Instagram</div>
+        <div class="tab" data-site="pinterest">Pinterest</div>
+        <div class="tab" data-site="youtube">YouTube</div>
+      </div>
+
+      <label for="urlInput">Paste video URL</label>
+      <input id="urlInput" class="input" placeholder="https://..." />
+
+      <div class="row">
+        <button id="fetchBtn" class="btn">🎬 Fetch</button>
+        <button id="clearBtn" class="btn ghost">Clear</button>
+      </div>
+
+      <div id="videoBox" class="video-box">
+        <video id="videoTag" controls></video>
+        <div id="links" class="links"></div>
+      </div>
+
+      <div class="small">⚡ Developed by <strong>Mr Hamza Jutt</strong> © <span id="year"></span></div>
+      <div class="footer">VIP Matrix Edition</div>
+    </div>
+  </div>
+
+<script>
+  // auto year
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // matrix effect (light)
+  (function(){
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
+    let W = canvas.width = innerWidth, H = canvas.height = innerHeight;
+    const cols = Math.floor(W / 14);
+    const y = Array(cols).fill(0);
+    function frame(){
+      ctx.fillStyle = 'rgba(0,0,0,0.06)'; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = 'rgba(255,45,117,0.18)'; ctx.font = '14px monospace';
+      for(let i=0;i<cols;i++){
+        const text = Math.random()>0.5 ? '0':'1';
+        ctx.fillText(text, i*14, y[i]);
+        y[i] = y[i] > H + Math.random()*1000 ? 0 : y[i] + 14;
+      }
+      requestAnimationFrame(frame);
+    }
+    window.addEventListener('resize', ()=>{W=canvas.width=innerWidth;H=canvas.height=innerHeight});
+    frame();
+  })();
+
+  // tabs
+  let current = 'tiktok';
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click', ()=> {
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      current = t.dataset.site;
+      document.getElementById('videoBox').style.display = 'none';
+      document.getElementById('links').innerHTML = '';
+      document.getElementById('videoTag').src = '';
+    });
+  });
+
+  const fetchBtn = document.getElementById('fetchBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const urlInput = document.getElementById('urlInput');
+  const videoBox = document.getElementById('videoBox');
+  const videoTag = document.getElementById('videoTag');
+  const links = document.getElementById('links');
+
+  clearBtn.addEventListener('click', ()=>{
+    urlInput.value=''; videoBox.style.display='none'; links.innerHTML=''; videoTag.src='';
+  });
+
+  fetchBtn.addEventListener('click', async ()=>{
+    const url = urlInput.value.trim();
+    if(!url){ alert('Please paste a video URL'); return; }
+
+    links.innerHTML = '⏳ Fetching...';
+    videoBox.style.display = 'none';
+    try {
+      const resp = await fetch(`/api/${current}?url=${encodeURIComponent(url)}`);
+      const data = await resp.json();
+      console.log('api->', data);
+      links.innerHTML = '';
+      videoTag.src = '';
+
+      // Handle per-site format
+      if(current === 'tiktok'){
+        // expect { noWatermark, watermark, raw? }
+        const no = data.noWatermark || data.no_wm || data.play || data.video;
+        const wm = data.watermark || data.wmplay || data.wm;
+        if(no){
+          addLink(no, '⬇ Download Without Watermark', 'tiktok-no-wm.mp4');
+          videoTag.src = no;
+        }
+        if(wm){
+          addLink(wm, '⬇ Download With Watermark', 'tiktok-wm.mp4');
+          if(!videoTag.src) videoTag.src = wm;
+        }
+        if(!no && !wm) showError(data);
+      }
+      else if(current === 'facebook'){
+        // expect { hd, sd, raw? }
+        const hd = data.hd || data.HD || (data.links && data.links.HD);
+        const sd = data.sd || data.SD || (data.links && data.links.SD);
+        if(hd) { addLink(hd, '⬇ Download HD', 'facebook-hd.mp4'); videoTag.src = hd; }
+        if(sd) { addLink(sd, '⬇ Download SD', 'facebook-sd.mp4'); if(!videoTag.src) videoTag.src = sd; }
+        if(!hd && !sd) showError(data);
+      }
+      else if(current === 'instagram' || current === 'pinterest'){
+        // expect { links: [{url, type}, ...] } or { links: [url, ...] }
+        const list = data.links || data.data || data.result || data.urls || data.items || [];
+        if(Array.isArray(list) && list.length){
+          list.forEach((it, idx)=>{
+            const url = (typeof it === 'string') ? it : (it.url || it.src || it.download || it.video || it.media);
+            const label = (typeof it === 'string') ? `Download ${idx+1}` : (it.type ? `${it.type}` : `Download ${idx+1}`);
+            if(url) addLink(url, `⬇ ${label}`, `${current}-${idx+1}.mp4`);
+            if(idx===0 && url) videoTag.src = url;
+          });
+        } else showError(data);
+      }
+      else if(current === 'youtube'){
+        // expect { formats: { itag: { url, quality, size } } } or { formats: [{qualityLabel, url}, ...] }
+        const formats = data.formats || data.formats_list || data.formatsArray || data.formatsMap || data.formats || [];
+        // try array
+        if(Array.isArray(formats) && formats.length){
+          formats.forEach(f=>{
+            const urlf = f.url || f.download || f.link;
+            const q = f.qualityLabel || f.quality || f.label || (f.itag ? `itag ${f.itag}` : 'video');
+            if(urlf) addLink(urlf, `⬇ ${q}`, `youtube-${q}.mp4`);
+            if(!videoTag.src && urlf) videoTag.src = urlf;
+          });
+        } else if(typeof formats === 'object' && Object.keys(formats).length){
+          // object map
+          Object.values(formats).forEach(f=>{
+            const urlf = f.url || f.link;
+            const q = f.qualityLabel || f.quality || f.label || 'video';
+            if(urlf) addLink(urlf, `⬇ ${q}`, `youtube-${q}.mp4`);
+            if(!videoTag.src && urlf) videoTag.src = urlf;
+          });
+        } else {
+          // fallback - maybe data.url
+          if(data.url){ addLink(data.url, '⬇ Download', 'youtube-video.mp4'); videoTag.src = data.url; }
+          else showError(data);
+        }
+      }
+
+      if(videoTag.src) videoBox.style.display = 'block';
+    } catch (err){
+      console.error(err);
+      links.innerHTML = '';
+      alert('Error fetching video. Check console and try again.');
+    }
+  });
+
+  function addLink(href, text, filename){
+    const a = document.createElement('a');
+    a.className = 'link-btn';
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.download = filename || '';
+    a.textContent = text;
+    links.appendChild(a);
+  }
+
+  function showError(data){
+    links.innerHTML = `<div style="color:#f88;font-size:13px">Video link not found in API response. See console for raw response.</div>`;
+    console.log('RAW API RESPONSE', data);
+  }
+</script>
+</body>
+  </html>
