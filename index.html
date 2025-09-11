@@ -10,7 +10,6 @@
       --bg:#050505; --accent:#ff2d75; --accent-2:#ff0050; --gold:#ffd700;
       --muted:#bfa3b8;
     }
-    *{box-sizing:border-box}
     body{margin:0;min-height:100vh;font-family:'Poppins',system-ui,Arial;background:linear-gradient(160deg,#000 0%,#0d0d0d 100%);color:#ffe0f0;overflow:auto}
     .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:36px}
     .card{width:460px;max-width:94%;background:linear-gradient(180deg,rgba(15,8,12,0.6),rgba(8,4,6,0.75));border-radius:16px;padding:22px;box-shadow:0 18px 50px rgba(255,45,117,0.08);border:1px solid rgba(255,45,117,0.06)}
@@ -22,7 +21,6 @@
     .tabs{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap}
     .tab{flex:1;padding:8px 10px;border-radius:8px;background:rgba(255,45,117,0.06);color:var(--muted);text-align:center;cursor:pointer;border:1px solid rgba(255,45,117,0.03);font-weight:600}
     .tab.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff}
-    label{display:block;margin-top:10px;font-size:13px;color:var(--muted)}
     .input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,45,117,0.06);background:rgba(0,0,0,0.45);color:#ffd6ea;font-size:14px;outline:none}
     .row{display:flex;gap:8px;margin-top:12px}
     .btn{flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;font-weight:700;cursor:pointer}
@@ -33,9 +31,11 @@
     .link-btn{display:block;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);color:#ffe; text-decoration:none;border:1px solid rgba(255,45,117,0.06);font-weight:600}
     .small{font-size:12px;color:var(--muted);margin-top:10px;text-align:center}
     .footer{margin-top:12px;text-align:center;color:var(--gold);font-weight:600}
-    /* matrix canvas overlay */
     .matrix {position:fixed;inset:0;z-index:-1;pointer-events:none}
     canvas{width:100%;height:100%}
+
+    /* 🔹 Debug box style */
+    #debugBox{margin-top:14px;padding:10px;background:#111;border-radius:10px;font-size:11px;color:#0f0;max-height:200px;overflow:auto;white-space:pre-wrap}
   </style>
 </head>
 <body>
@@ -43,14 +43,16 @@
 
   <div class="wrap">
     <div class="card">
+      <!-- top -->
       <div class="top">
-        <div class="avatar"><img src="https://i.postimg.cc/Dzrr0fbd/stripped-Snapchat-931726747.jpg" alt="profile"></div>
+        <div class="avatar"><img src="https://i.postimg.cc/Dzrr0fbd/stripped-Snapchat-931726747.jpg"></div>
         <div style="flex:1">
           <h1>VIP All-in-One Downloader</h1>
           <div class="subtitle">TikTok • Facebook • Instagram • Pinterest • YouTube</div>
         </div>
       </div>
 
+      <!-- tabs -->
       <div class="tabs" id="tabs">
         <div class="tab active" data-site="tiktok">TikTok</div>
         <div class="tab" data-site="facebook">Facebook</div>
@@ -59,7 +61,7 @@
         <div class="tab" data-site="youtube">YouTube</div>
       </div>
 
-      <label for="urlInput">Paste video URL</label>
+      <!-- input -->
       <input id="urlInput" class="input" placeholder="https://..." />
 
       <div class="row">
@@ -72,46 +74,27 @@
         <div id="links" class="links"></div>
       </div>
 
+      <!-- 🔹 Debug box -->
+      <div id="debugBox">Debug: Waiting...</div>
+
       <div class="small">⚡ Developed by <strong>Mr Hamza Jutt</strong> © <span id="year"></span></div>
       <div class="footer">VIP Matrix Edition</div>
     </div>
   </div>
 
 <script>
-  // auto year
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  // matrix effect
-  (function(){
-    const canvas = document.getElementById('matrixCanvas');
-    const ctx = canvas.getContext('2d');
-    let W = canvas.width = innerWidth, H = canvas.height = innerHeight;
-    const cols = Math.floor(W / 14);
-    const y = Array(cols).fill(0);
-    function frame(){
-      ctx.fillStyle = 'rgba(0,0,0,0.06)'; ctx.fillRect(0,0,W,H);
-      ctx.fillStyle = 'rgba(255,45,117,0.18)'; ctx.font = '14px monospace';
-      for(let i=0;i<cols;i++){
-        const text = Math.random()>0.5 ? '0':'1';
-        ctx.fillText(text, i*14, y[i]);
-        y[i] = y[i] > H + Math.random()*1000 ? 0 : y[i] + 14;
-      }
-      requestAnimationFrame(frame);
-    }
-    window.addEventListener('resize', ()=>{W=canvas.width=innerWidth;H=canvas.height=innerHeight});
-    frame();
-  })();
-
-  // tabs
   let current = 'tiktok';
   document.querySelectorAll('.tab').forEach(t=>{
     t.addEventListener('click', ()=> {
       document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
       t.classList.add('active');
-      current = t.dataset.site; // sirf UI ke liye
+      current = t.dataset.site;
       document.getElementById('videoBox').style.display = 'none';
       document.getElementById('links').innerHTML = '';
       document.getElementById('videoTag').src = '';
+      document.getElementById('debugBox').textContent = "Debug: Waiting...";
     });
   });
 
@@ -121,9 +104,11 @@
   const videoBox = document.getElementById('videoBox');
   const videoTag = document.getElementById('videoTag');
   const links = document.getElementById('links');
+  const debugBox = document.getElementById('debugBox');
 
   clearBtn.addEventListener('click', ()=>{
     urlInput.value=''; videoBox.style.display='none'; links.innerHTML=''; videoTag.src='';
+    debugBox.textContent="Debug: Waiting...";
   });
 
   fetchBtn.addEventListener('click', async ()=>{
@@ -132,53 +117,22 @@
 
     links.innerHTML = '⏳ Fetching...';
     videoBox.style.display = 'none';
-
+    debugBox.textContent = "Debug: Fetching...";
     try {
-      // ✅ All-in-One API call
-      const resp = await fetch(`https://socialdownloder2.anshapi.workers.dev/?url=${encodeURIComponent(url)}`);
+      const resp = await fetch(`/api/${current}?url=${encodeURIComponent(url)}`);
       const data = await resp.json();
-      console.log('API Response:', data);
+
+      // 🔹 Show API response in debug box
+      debugBox.textContent = JSON.stringify(data, null, 2);
 
       links.innerHTML = '';
       videoTag.src = '';
-
-      let urls = [];
-
-      if(data.url) urls.push({url: data.url, label: 'Download'});
-      if(Array.isArray(data.links)) urls = urls.concat(data.links.map((l,i)=>({url:l.url || l, label: l.quality || l.type || `Link ${i+1}`})));
-      if(Array.isArray(data.formats)) urls = urls.concat(data.formats.map(f=>({url:f.url, label:f.qualityLabel || f.quality || 'Format'})));
-
-      if(urls.length){
-        urls.forEach((u,i)=>{
-          if(u.url) addLink(u.url, `⬇ ${u.label}`, `video-${i+1}.mp4`);
-          if(i===0 && u.url) videoTag.src = u.url;
-        });
-        videoBox.style.display = 'block';
-      } else {
-        showError(data);
-      }
     } catch (err){
-      console.error(err);
+      debugBox.textContent = "Error: " + err.message;
       links.innerHTML = '';
-      alert('Error fetching video. Check console.');
+      alert('Error fetching video. See debug box.');
     }
   });
-
-  function addLink(href, text, filename){
-    const a = document.createElement('a');
-    a.className = 'link-btn';
-    a.href = href;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.download = filename || '';
-    a.textContent = text;
-    links.appendChild(a);
-  }
-
-  function showError(data){
-    links.innerHTML = `<div style="color:#f88;font-size:13px">Video link not found in API response. See console for raw response.</div>`;
-    console.log('RAW API RESPONSE', data);
-  }
 </script>
 </body>
-</html>
+        </html>
