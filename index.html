@@ -33,7 +33,7 @@
     .link-btn{display:block;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);color:#ffe; text-decoration:none;border:1px solid rgba(255,45,117,0.06);font-weight:600}
     .small{font-size:12px;color:var(--muted);margin-top:10px;text-align:center}
     .footer{margin-top:12px;text-align:center;color:var(--gold);font-weight:600}
-    /* matrix canvas overlay (kept simple) */
+    /* matrix canvas overlay */
     .matrix {position:fixed;inset:0;z-index:-1;pointer-events:none}
     canvas{width:100%;height:100%}
   </style>
@@ -81,7 +81,7 @@
   // auto year
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  // matrix effect (light)
+  // matrix effect
   (function(){
     const canvas = document.getElementById('matrixCanvas');
     const ctx = canvas.getContext('2d');
@@ -108,7 +108,7 @@
     t.addEventListener('click', ()=> {
       document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
       t.classList.add('active');
-      current = t.dataset.site;
+      current = t.dataset.site; // sirf UI ke liye
       document.getElementById('videoBox').style.display = 'none';
       document.getElementById('links').innerHTML = '';
       document.getElementById('videoTag').src = '';
@@ -132,79 +132,35 @@
 
     links.innerHTML = '⏳ Fetching...';
     videoBox.style.display = 'none';
+
     try {
-      const resp = await fetch(`/api/${current}?url=${encodeURIComponent(url)}`);
+      // ✅ All-in-One API call
+      const resp = await fetch(`https://socialdownloder2.anshapi.workers.dev/?url=${encodeURIComponent(url)}`);
       const data = await resp.json();
-      console.log('api->', data);
+      console.log('API Response:', data);
+
       links.innerHTML = '';
       videoTag.src = '';
 
-      // Handle per-site format
-      if(current === 'tiktok'){
-        // expect { noWatermark, watermark, raw? }
-        const no = data.noWatermark || data.no_wm || data.play || data.video;
-        const wm = data.watermark || data.wmplay || data.wm;
-        if(no){
-          addLink(no, '⬇ Download Without Watermark', 'tiktok-no-wm.mp4');
-          videoTag.src = no;
-        }
-        if(wm){
-          addLink(wm, '⬇ Download With Watermark', 'tiktok-wm.mp4');
-          if(!videoTag.src) videoTag.src = wm;
-        }
-        if(!no && !wm) showError(data);
-      }
-      else if(current === 'facebook'){
-        // expect { hd, sd, raw? }
-        const hd = data.hd || data.HD || (data.links && data.links.HD);
-        const sd = data.sd || data.SD || (data.links && data.links.SD);
-        if(hd) { addLink(hd, '⬇ Download HD', 'facebook-hd.mp4'); videoTag.src = hd; }
-        if(sd) { addLink(sd, '⬇ Download SD', 'facebook-sd.mp4'); if(!videoTag.src) videoTag.src = sd; }
-        if(!hd && !sd) showError(data);
-      }
-      else if(current === 'instagram' || current === 'pinterest'){
-        // expect { links: [{url, type}, ...] } or { links: [url, ...] }
-        const list = data.links || data.data || data.result || data.urls || data.items || [];
-        if(Array.isArray(list) && list.length){
-          list.forEach((it, idx)=>{
-            const url = (typeof it === 'string') ? it : (it.url || it.src || it.download || it.video || it.media);
-            const label = (typeof it === 'string') ? `Download ${idx+1}` : (it.type ? `${it.type}` : `Download ${idx+1}`);
-            if(url) addLink(url, `⬇ ${label}`, `${current}-${idx+1}.mp4`);
-            if(idx===0 && url) videoTag.src = url;
-          });
-        } else showError(data);
-      }
-      else if(current === 'youtube'){
-        // expect { formats: { itag: { url, quality, size } } } or { formats: [{qualityLabel, url}, ...] }
-        const formats = data.formats || data.formats_list || data.formatsArray || data.formatsMap || data.formats || [];
-        // try array
-        if(Array.isArray(formats) && formats.length){
-          formats.forEach(f=>{
-            const urlf = f.url || f.download || f.link;
-            const q = f.qualityLabel || f.quality || f.label || (f.itag ? `itag ${f.itag}` : 'video');
-            if(urlf) addLink(urlf, `⬇ ${q}`, `youtube-${q}.mp4`);
-            if(!videoTag.src && urlf) videoTag.src = urlf;
-          });
-        } else if(typeof formats === 'object' && Object.keys(formats).length){
-          // object map
-          Object.values(formats).forEach(f=>{
-            const urlf = f.url || f.link;
-            const q = f.qualityLabel || f.quality || f.label || 'video';
-            if(urlf) addLink(urlf, `⬇ ${q}`, `youtube-${q}.mp4`);
-            if(!videoTag.src && urlf) videoTag.src = urlf;
-          });
-        } else {
-          // fallback - maybe data.url
-          if(data.url){ addLink(data.url, '⬇ Download', 'youtube-video.mp4'); videoTag.src = data.url; }
-          else showError(data);
-        }
-      }
+      let urls = [];
 
-      if(videoTag.src) videoBox.style.display = 'block';
+      if(data.url) urls.push({url: data.url, label: 'Download'});
+      if(Array.isArray(data.links)) urls = urls.concat(data.links.map((l,i)=>({url:l.url || l, label: l.quality || l.type || `Link ${i+1}`})));
+      if(Array.isArray(data.formats)) urls = urls.concat(data.formats.map(f=>({url:f.url, label:f.qualityLabel || f.quality || 'Format'})));
+
+      if(urls.length){
+        urls.forEach((u,i)=>{
+          if(u.url) addLink(u.url, `⬇ ${u.label}`, `video-${i+1}.mp4`);
+          if(i===0 && u.url) videoTag.src = u.url;
+        });
+        videoBox.style.display = 'block';
+      } else {
+        showError(data);
+      }
     } catch (err){
       console.error(err);
       links.innerHTML = '';
-      alert('Error fetching video. Check console and try again.');
+      alert('Error fetching video. Check console.');
     }
   });
 
@@ -225,4 +181,4 @@
   }
 </script>
 </body>
-  </html>
+</html>
