@@ -1,45 +1,30 @@
 // api/tiktok.js
-// tries few public TikTok helpers (primary: tikwm), returns { noWatermark, watermark } or { error, raw }
 export default async function handler(req, res) {
-  const { url } = req.query;
-  if(!url) return res.status(400).json({ error: 'Missing url' });
-
   try {
-    // primary: tikwm
-    const api = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`;
-    let r = await fetch(api);
-    let data = await safeJson(r);
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'No URL provided' });
 
-    // tikwm returns data.data.play (no wm) and data.data.wmplay (wm)
-    if(data && data.data && (data.data.play || data.data.wmplay)) {
-      return res.status(200).json({
-        noWatermark: data.data.play || null,
-        watermark: data.data.wmplay || null
-      });
-    }
+    const actor = 'scraper-mind/tiktok-video-downloader';
+    const token = process.env.APIFY_TOKEN;
+    const apiUrl = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset?token=${encodeURIComponent(token)}`;
 
-    // fallback: try another known worker
-    const alt = `https://tiktok-down.apis-bj-devs.workers.dev/?url=${encodeURIComponent(url)}`;
-    r = await fetch(alt);
-    data = await safeJson(r);
-    // try common keys
-    const no = data?.no_wm || data?.noWatermark || data?.play || data?.video;
-    const wm  = data?.wmplay || data?.watermark || data?.wm;
-    if(no || wm) return res.status(200).json({ noWatermark: no || null, watermark: wm || null });
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
 
-    // nothing useful
-    return res.status(500).json({ error: 'Video not found in responses', raw: data || null });
+    const data = await response.json();
+    // data.items is usually an array
+    const items = data.items || data;
+    if (!items || items.length === 0) return res.status(404).json({ error: 'No items' });
+
+    // try common fields
+    const first = items[0];
+    const video = first.video || first.url || first.downloadUrl || first.videoUrl || first.src;
+    return res.status(200).json({ video, raw: first });
   } catch (err) {
-    console.error('tiktok err', err);
-    return res.status(500).json({ error: 'Failed to fetch tiktok', details: err.message });
+    console.error('tiktok error:', err);
+    return res.status(500).json({ error: 'Server error', details: String(err) });
   }
 }
-
-async function safeJson(resp){
-  try {
-    const txt = await resp.text();
-    return JSON.parse(txt);
-  } catch(e){
-    try { return resp.json(); } catch(_){ return { raw: await resp.text() }; }
-  }
-  }
