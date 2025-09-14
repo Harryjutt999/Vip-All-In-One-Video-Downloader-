@@ -1,32 +1,28 @@
 // api/instagram.js
 export default async function handler(req, res) {
-  const { url } = req.query;
-  if (!url) {
-    return res.status(400).json({ error: "Missing url" });
-  }
-
   try {
-    // 🔹 Dummy links (replace later with real API)
-    return res.status(200).json({
-      links: [
-        {
-          url: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-          type: "mp4",
-        },
-        {
-          url: "https://sample-videos.com/video123/mp4/480/big_buck_bunny_480p_1mb.mp4",
-          type: "mp4",
-        },
-        {
-          url: "https://sample-videos.com/img/Sample-jpg-image-500kb.jpg",
-          type: "image",
-        },
-      ],
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'No URL provided' });
+
+    const actor = 'scraper-mind/instagram-video-downloader';
+    const token = process.env.APIFY_TOKEN;
+    const apiUrl = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset?token=${encodeURIComponent(token)}`;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
     });
+
+    const data = await response.json();
+    const items = data.items || data;
+    if (!items || items.length === 0) return res.status(404).json({ error: 'No items' });
+
+    const first = items[0];
+    const video = first.url || first.video || first.videoUrl || first.downloadUrl || first.src;
+    return res.status(200).json({ video, raw: first });
   } catch (err) {
-    console.error("instagram err", err);
-    return res
-      .status(500)
-      .json({ error: "Failed to fetch instagram", details: err.message });
+    console.error('instagram error:', err);
+    return res.status(500).json({ error: 'Server error', details: String(err) });
   }
-}
+  }
